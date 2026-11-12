@@ -1,0 +1,25 @@
+# dsh-session-bridge 补丁层
+#
+# 把本插件作为一行插入 profile 的配置树。
+# 安装：dsh plugin --profile <profile> add link:<本目录绝对路径>
+# 或让 profile 的 cordis.patch.yml 引用同一行。
+#
+# 配置项含义见 README.md「配置」一节；这里给的是默认值。
+
+- insert:
+    - id: session-bridge
+      name: dsh-session-bridge
+      config:
+        # 默认允许跨工作区通信；true 时只允许同一工作区
+        requireSameWorkspace: false
+        # 目标会话没打开时是否允许自动恢复（会真的起一轮模型调用）
+        allowColdSessions: true
+        # true：插话到当前轮或唤醒空闲会话；false：只注入消息，不主动唤醒
+        wakeTarget: true
+        # 普通消息的可选上限，0 表示不限
+        maxHops: 0
+        maxSendsPerMinute: 0
+        # 单条消息最大字符数
+        maxMessageChars: 8000
+        # 列会话时默认返回条数
+        peerLimit: 20

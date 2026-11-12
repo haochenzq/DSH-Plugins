@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Session bridge",
+    "description": "Lets two independent DSH sessions exchange messages or collaborate across workspaces. Messages join the recipient's active turn or wake an idle session. A collaboration ends when work is complete, requires user intervention, or is stopped by the user."
+  }
+}

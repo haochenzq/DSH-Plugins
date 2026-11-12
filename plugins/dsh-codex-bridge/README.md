@@ -5,7 +5,9 @@ Windows 上的本机桥接。两边每次选择一个已有会话。消息出现
 ## 使用
 
 - Codex → DSH。在 Codex 告知 DSH 对话标题或会话 ID。标题同名时按工作区核对。文字、图片和普通文件通过 DSH 原生即时发送模式交给目标会话。
-- DSH → Codex。回复本轮唯一获授权的来源会话时，纯文字用 `reply_to_codex`，只传正文。发送真实附件或使用用户本轮指定的既有目标时，用 `send_to_codex`。附件必须来自本会话且已获授权，填写真实的附件 ID 与序号。
+- DSH → Codex。纯文字用 `reply_to_codex`，附件用 `send_to_codex`。本轮有唯一授权目标时优先使用该目标，本轮没有目标时使用唯一已配对的 Codex 会话。有多个可选目标时，用 `send_to_codex` 指定其中一个链接或 ID。附件必须来自本 DSH 会话且已获授权，填写真实的附件 ID 和来源序号。
+
+Codex 发给指定 DSH 会话的消息被接受后，桥会保存双方会话的配对。用户也可在 DSH 中明确选择一个 Codex 会话，发送成功后建立配对。配对保存在本机，重启 DSH 后仍可用于主动发送文字和附件。`--reply-to` 指向另一个 Codex 会话时只指定本次回复路径。
 
 双方对话即时发送。空闲会话开启新一轮，活跃会话在当前轮接收输入，可能影响正在进行的工作。桌面端已持有的 Codex 会话由桌面端直接接收，未加载的会话先恢复，再发送。Codex 回执 `sent` 包含消息 ID 和轮次 ID，表示接受了本次输入。实际处理情况以接收会话为准。
 
@@ -28,7 +30,7 @@ Windows 上的本机桥接。两边每次选择一个已有会话。消息出现
 ~~~powershell
 $source = (Resolve-Path -LiteralPath '.\plugins\dsh-codex-bridge').Path
 $packages = Join-Path $env:LOCALAPPDATA 'DSH Codex Bridge\packages'
-$package = Join-Path $packages '0.6.6'
+$package = Join-Path $packages '0.6.7'
 if (-not (Test-Path -LiteralPath $package)) {
   New-Item -ItemType Directory -Path $packages -Force | Out-Null
   Copy-Item -LiteralPath $source -Destination $package -Recurse
@@ -37,11 +39,11 @@ $dsh = Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness\resources\runtime\
 & $dsh plugin --profile desktop add "link:$package" --offline --ignore-scripts
 ~~~
 
-如果版本目录已经存在，先核对它的来源。重新打开 DSH Desktop 并确认「Codex 会话协作」启用。安装 [codex-to-dsh 配套技能](https://github.com/haochenzq/Codex-skills/tree/main/codex-to-dsh)后，按技能说明选择目标会话。
+如果版本目录已经存在，先核对它的来源。重新打开 DSH Desktop 并确认「Codex 会话协作」启用。将此版本的 [codex-to-dsh 配套技能](skill-package/codex-to-dsh)目录放入 `~/.codex/skills`，再按技能说明选择目标会话。
 
 ## 验证
 
-在本插件目录运行 Node.js 自动测试。
+0.6.7 已在桌面验证跨轮主动回传文字、原生 PNG 和普通文件引用。长轮次按实际轮次边界核对来源。在本插件目录可运行 14 项自动测试。
 
 ~~~powershell
 node --test

@@ -24,7 +24,7 @@ export async function apply(ctx) {
 
   const invoke = (method, args, signal) =>
     gateway.invoke({ namespace: 'session', method, args, peer, signal })
-  const directChat = createDirectChat(ctx, undefined, (session, id, seq, signal) =>
+  const directChat = createDirectChat(ctx, directory, undefined, (session, id, seq, signal) =>
     codexAttachment(ctx, session, id, seq, (method, args) => invoke(method, args, signal)))
 
   const server = createServer(socket => {
