@@ -1,0 +1,4 @@
+- insert:
+    - id: cosmos-theme
+      name: dsh-cosmos-theme
+      config: {}

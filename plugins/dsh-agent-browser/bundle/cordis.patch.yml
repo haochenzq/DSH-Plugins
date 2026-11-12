@@ -1,0 +1,29 @@
+- insert:
+    - id: agent-browser-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: agent_browser
+        transport: stdio
+        # 可替换：Node.js 可执行文件路径。
+        command: 'C:\Program Files\nodejs\node.exe'
+        args:
+          # 可替换：Playwright MCP 安装后的 cli.js 路径。
+          - 'C:\DSH-Agent-Browser\mcp\node_modules\@playwright\mcp\cli.js'
+          - '--executable-path'
+          # 可替换：专用 Chromium 可执行文件路径。
+          - 'C:\DSH-Agent-Browser\chromium\chrome.exe'
+          - '--user-data-dir'
+          # 可替换：专用 Chromium 用户数据目录。
+          - 'C:\DSH-Agent-Browser\profile'
+          - '--output-dir'
+          # 可替换：浏览器输出目录。
+          - 'C:\DSH-Agent-Browser\output'
+          - '--no-webmcp'
+          - '--sandbox'
+        # 可替换：Playwright MCP 的工作目录。
+        cwd: 'C:\DSH-Agent-Browser\mcp'
+        env:
+          # 可替换：Playwright 浏览器存放目录。
+          PLAYWRIGHT_BROWSERS_PATH: 'C:\DSH-Agent-Browser\browsers'
+        toolCallTimeoutMs: 120000
+        failOnStartupError: true

@@ -1,0 +1,38 @@
+{
+  "name": "dsh-abyss-theme",
+  "version": "0.1.0",
+  "private": true,
+  "description": "「深渊 ABYSS」深色主题：把 DeepSeek Harness Web 界面换成深海底色、品牌蓝与粒子鲸底图；纯本地、不联网、不调用模型",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "assets",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "engines": {
+    "dsh": ">=0.2.0-0 <0.3.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "theme",
+    "appearance"
+  ],
+  "license": "MIT"
+}

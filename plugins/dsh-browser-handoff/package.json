@@ -1,0 +1,8 @@
+{
+ "name":"dsh-browser-handoff","version":"0.1.0","type":"module",
+ "description":"通过官方认证入口将当前本机 DSH 授权给专用自动化浏览器，不向聊天返回认证链接。",
+ "engines":{"dsh":">=0.2.2-rc.1 <0.3.0"},
+ "exports":{".":"./lib/index.js","./client":"./lib/client.js","./locale/*.json":"./locale/*.json","./icon":"./icon.svg"},
+ "files":["lib","locale","icon.svg","cordis.patch.yml","README.md"],
+ "dsh":{"bundle":{"patch":"./cordis.patch.yml"}}
+}

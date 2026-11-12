@@ -1,0 +1,30 @@
+{
+  "name": "dsh-light-memory",
+  "version": "0.2.0",
+  "private": true,
+  "description": "轻量、纯本地的 DSH 记忆插件 + 「个性化」设置页：管理全局 AGENTS.md 与本地记忆库，不联网、不调用模型",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "engines": {
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}

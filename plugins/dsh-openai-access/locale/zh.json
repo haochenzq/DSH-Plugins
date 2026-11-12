@@ -1,0 +1,1 @@
+{ "meta": { "title": "OpenAI 模型接入", "description": "显示四款指定的 OpenAI 聊天模型，并支持后台调用其他文本模型及生成图片。" } }

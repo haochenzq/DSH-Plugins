@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { apply, localRoot } from './lib/index.js';
+for (const url of ['https://example.com/','http://127.0.0.1:9/path','http://127.0.0.1:9/?token=x','http://u:p@127.0.0.1:9/','http://localhost:9/']) assert.throws(()=>localRoot(url));
+assert.equal(localRoot('http://127.0.0.1:12385/'),'http://127.0.0.1:12385/');
+let tool, seen;
+const ctx={tools:{register(x){tool=x},executable(){return {async execute(args){seen=args;return {content:[{text:'SECRET'}]}}}},checkGuards(){}},webApp:{getAdvertisedUrl(){return 'http://127.0.0.1:12385/'}},connection:{authenticatedUrl(url){return url+'?token=SECRET'}}};
+apply(ctx);
+const exec={signal:new AbortController().signal};
+const result=await tool.execute({},exec);
+assert.equal(seen.url,'http://127.0.0.1:12385/?token=SECRET');
+assert(!JSON.stringify(result).includes('SECRET'));
+ctx.tools.executable=()=>({execute(){throw Error('SECRET')}});
+assert(!JSON.stringify(await tool.execute({},exec)).includes('SECRET'));
+ctx.tools.checkGuards=()=> 'denied';
+assert.equal((await tool.execute({},exec)).status,'browser-navigation-denied');
+ctx.tools.executable=()=>undefined;
+assert.equal((await tool.execute({},exec)).status,'browser-tool-unavailable');
+console.log('PASS: loopback boundary, direct handoff, credential suppression, failure and denial');

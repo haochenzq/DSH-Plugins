@@ -1,0 +1,42 @@
+- id: llm-pi-ai
+  config:
+    providers:
+      openai:
+        displayName: OpenAI
+        baseURL: https://api.openai.com/v1
+        api: openai-responses
+        apiKeyEnv: OPENAI_API_KEY
+        reasoning: medium
+        retryPolicy:
+          mode: normal
+          backoff:
+            initialDelayMs: 2000
+            maxDelayMs: 60000
+        models:
+          - id: gpt-6-astra
+            name: GPT-6 Astra
+            contextWindow: 1050000
+            maxTokens: 128000
+            input: [text, image]
+            reasoningEfforts: {low: low, medium: medium, high: high, xhigh: xhigh, max: max}
+          - id: gpt-6.1-sol
+            name: GPT-6.1 Sol
+            contextWindow: 1050000
+            maxTokens: 128000
+            input: [text, image]
+            reasoningEfforts: {low: low, medium: medium, high: high, xhigh: xhigh, max: max}
+          - id: gpt-6.1-terra
+            name: GPT-6.1 Terra
+            contextWindow: 1050000
+            maxTokens: 128000
+            input: [text, image]
+            reasoningEfforts: {off: none, low: low, medium: medium, high: high, xhigh: xhigh, max: max}
+          - id: gpt-6-luna
+            name: GPT-6 Luna
+            contextWindow: 1050000
+            maxTokens: 128000
+            input: [text, image]
+            reasoningEfforts: {off: none, low: low, medium: medium, high: high, xhigh: xhigh, max: max}
+- insert:
+    - id: openai-model-consult
+      name: '@local/dsh-openai-access'

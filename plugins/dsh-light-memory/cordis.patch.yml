@@ -1,0 +1,15 @@
+# dsh-light-memory 补丁层
+#
+# 把本插件作为一行插入 profile 的配置树。
+# 安装：dsh plugin --profile <profile> add link:<本目录绝对路径>
+# 或开发期直接让 profile 的 cordis.patch.yml 引用同一行。
+
+- insert:
+    - id: light-memory
+      name: dsh-light-memory
+      config:
+        # 留空表示用 $DSH_HOME/light-memory/memories.json
+        # 需要固定位置时填该机器上的绝对路径。
+        dir: ""
+        # 记忆检索默认返回条数
+        searchLimit: 5

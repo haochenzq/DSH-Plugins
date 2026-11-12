@@ -1,0 +1,13 @@
+# dsh-abyss-theme 补丁层
+#
+# 安装（任选其一）：
+#   1. dsh plugin --profile desktop add "link:<本插件绝对路径>"
+#   2. 在 profile 的 package.json 里加 link 依赖，并把它加进 dsh.profile.bundles
+#
+# wallpaper: 是否铺那张鲸鱼底图；false 时只换配色（纯深海色，无图）。
+
+- insert:
+    - id: abyss-theme
+      name: dsh-abyss-theme
+      config:
+        wallpaper: true

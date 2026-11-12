@@ -1,0 +1,4 @@
+- insert:
+    - id: simple-skills
+      name: dsh-simple-skills
+      config: {}

@@ -1,0 +1,23 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,mkdir,writeFile,readFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {parse} from 'yaml';
+import {createStore} from '../lib/store.js';
+const text=(name,body='hello')=>`---\nname: ${name}\ndescription: Example\n---\n${body}\n`;
+test('new, directory skill, atomic edit, conflict and traversal',async()=>{
+ const base=await mkdtemp(join(tmpdir(),'simple-skills-test-')); const store=createStore(base,parse);
+ assert.deepEqual(await store.list(),[]);
+ await store.save({name:'demo',content:text('demo')});
+ await assert.rejects(store.save({name:'demo',content:text('demo')}));
+ await mkdir(join(base,'bundle'));await writeFile(join(base,'bundle','SKILL.md'),text('bundle'));
+ const rows=await store.list();assert.equal(rows.length,2);
+ const row=rows.find(r=>r.name==='bundle');assert.equal(row.id,'bundle/SKILL.md');
+ await store.save({...row,content:text('bundle','updated')});
+ assert.match(await readFile(join(base,'bundle','SKILL.md'),'utf8'),/updated/);
+ await assert.rejects(store.save({...row,content:text('bundle','stale')}),/变化/);
+ await assert.rejects(store.save({id:'../escape.md',name:'escape',content:text('escape')}),/越界/);
+ await assert.rejects(store.save({name:'bad',content:text('different')}),/一致/);
+ await assert.rejects(store.save({name:'empty',content:'---\nname: empty\n---\n'}),/description/);
+});
