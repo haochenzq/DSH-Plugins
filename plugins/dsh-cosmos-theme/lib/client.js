@@ -52,24 +52,38 @@ window.__ModuleLoader__.load({
       .cosmos-sky[data-scene=whale] .cosmos-planet,.cosmos-sky[data-scene=whale] .cosmos-sweep{display:none}
       .cosmos-sky:not([data-scene=whale]) .cosmos-whale{display:none}
       .cosmos-sky[data-scene=focus] .cosmos-planet,.cosmos-sky[data-scene=focus] .cosmos-sweep{display:none}
-      .cosmos-sky[data-scene=focus] .cosmos-cloud{opacity:.08}.cosmos-sky[data-scene=focus] .cosmos-star{opacity:.12;animation:none}
       .cosmos-sky[data-motion=quiet] .cosmos-cloud{animation-duration:40s}
       .cosmos-sky[data-motion=quiet] .cosmos-star{animation-duration:12s}
       .cosmos-sky[data-motion=quiet] .cosmos-planet,.cosmos-sky[data-motion=quiet] .cosmos-whale{animation-duration:40s}
+      .cosmos-sky[data-motion=rich] .cosmos-cloud{opacity:.3;animation-duration:12s}
+      .cosmos-sky[data-motion=rich] .cosmos-star{animation-name:cosmos-twinkle-rich;animation-duration:calc(var(--period) * .45)}
+      .cosmos-sky[data-motion=rich] .cosmos-star--bright{box-shadow:0 0 14px var(--ds-cosmos-cyan)}
+      .cosmos-sky[data-motion=rich] .cosmos-planet{opacity:.34;animation:cosmos-float-rich 10s ease-in-out infinite alternate}
+      .cosmos-sky[data-motion=rich] .cosmos-whale{animation:cosmos-float-rich 12s ease-in-out infinite alternate}
+      .cosmos-sky[data-motion=rich] .cosmos-sweep{animation:cosmos-sweep-pulse 5s ease-in-out infinite alternate}
+      .cosmos-sky[data-motion=rich] .cosmos-meteor{animation-name:cosmos-meteor-rich;animation-duration:7s;animation-delay:1s}
+      .cosmos-sky[data-motion=rich] .cosmos-meteor--2{right:31%;top:5%;animation-duration:9s;animation-delay:3.4s}
+      .cosmos-sky[data-motion=rich] .cosmos-meteor--3{right:5%;top:33%;animation-duration:12s;animation-delay:6.2s}
+      /* Focus must override rich: keep the stars still and the cloud subdued. */
+      .cosmos-sky[data-scene=focus] .cosmos-cloud{opacity:.08}.cosmos-sky[data-scene=focus] .cosmos-star{opacity:.12;animation:none}
       .cosmos-sky[data-motion=still] .cosmos-cloud,.cosmos-sky[data-motion=still] .cosmos-planet,.cosmos-sky[data-motion=still] .cosmos-whale,.cosmos-sky[data-motion=still] .cosmos-star{animation:none}
       .cosmos-sky[data-hidden=true] *{animation-play-state:paused!important}
       @keyframes cosmos-meteor{0%,90%,100%{opacity:0;translate:0 0}92%{opacity:.42}96%{opacity:0;translate:-120px 60px}}
+      @keyframes cosmos-meteor-rich{0%,88%,100%{opacity:0;translate:0 0}91%{opacity:.85}95%{opacity:0;translate:-170px 80px}}
       @keyframes cosmos-twinkle{from{opacity:.1;transform:scale(.8)}to{opacity:.65;transform:scale(1.2)}}
+      @keyframes cosmos-twinkle-rich{from{opacity:.04;transform:scale(.45)}to{opacity:.95;transform:scale(1.75)}}
       @keyframes cosmos-drift{from{transform:translateX(-1%)}to{transform:translateX(2%)}}
       @keyframes cosmos-float{from{transform:translateY(0)}to{transform:translateY(-10px)}}
-      .cosmos-controls{position:fixed;z-index:1;right:4px;top:72px;pointer-events:none;font:13px system-ui,sans-serif;color:var(--ds-cosmos-text)}
+      @keyframes cosmos-float-rich{from{transform:translateY(0) scale(1)}to{transform:translateY(-18px) scale(1.03)}}
+      @keyframes cosmos-sweep-pulse{from{opacity:.12}to{opacity:.3}}
+      .cosmos-controls{position:fixed;z-index:1;left:12px;bottom:138px;display:flex;flex-direction:column-reverse;align-items:flex-start;pointer-events:none;font:13px system-ui,sans-serif;color:var(--ds-cosmos-text)}
       .cosmos-controls button,.cosmos-controls select{font:inherit;color:var(--ds-cosmos-text);background:var(--ds-cosmos-overlay);border:1px solid var(--ds-cosmos-line-strong);border-radius:7px;pointer-events:auto}
       .cosmos-controls button{cursor:pointer}.cosmos-controls button:focus-visible,.cosmos-controls select:focus-visible{outline:2px solid var(--ds-cosmos-cyan);outline-offset:2px}
-      .cosmos-launcher{display:block;margin-left:auto;width:30px;height:30px}
-      .cosmos-panel{pointer-events:auto;width:220px;box-sizing:border-box;margin-top:5px;padding:12px;border:1px solid var(--ds-cosmos-line-strong);border-radius:10px;background:var(--ds-cosmos-surface);box-shadow:0 8px 24px var(--ds-cosmos-planet-dark)}
+      .cosmos-launcher{display:block;width:30px;height:30px}
+      .cosmos-panel{pointer-events:auto;width:220px;box-sizing:border-box;margin-bottom:5px;padding:12px;border:1px solid var(--ds-cosmos-line-strong);border-radius:10px;background:var(--ds-cosmos-surface);box-shadow:0 8px 24px var(--ds-cosmos-planet-dark)}
       .cosmos-panel-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.cosmos-panel-title strong{font-size:13px}.cosmos-panel-title button{padding:2px 7px}
       .cosmos-panel label{display:block;color:var(--ds-cosmos-muted);margin:8px 0 4px}.cosmos-panel select{display:block;width:100%;padding:6px}
-      @media(max-width:600px){.cosmos-planet{width:55vw;right:-20%}.cosmos-whale{width:75vw;right:-10%}.cosmos-controls{top:64px}}
+      @media(max-width:600px){.cosmos-planet{width:55vw;right:-20%}.cosmos-whale{width:75vw;right:-10%}.cosmos-controls{top:64px;bottom:auto;flex-direction:column}.cosmos-panel{margin-bottom:0;margin-top:5px}}
       @media(prefers-reduced-motion:reduce){.cosmos-sky *{animation:none!important}.cosmos-meteor{display:none!important}}
       @media print{.cosmos-sky,.cosmos-controls{display:none!important}}
     `;
@@ -129,7 +143,8 @@ window.__ModuleLoader__.load({
       return h(React.Fragment, null,
         h('div', { className: 'cosmos-sky', 'aria-hidden': true, 'data-scene': settings.scene, 'data-motion': settings.motion, 'data-hidden': String(hidden), 'data-cosmos-stars': stars.length },
           h('div', { className: 'cosmos-cloud' }), h('div', { className: 'cosmos-sweep' }),
-          h('div', { className: 'cosmos-planet' }), h('div', { className: 'cosmos-meteor' }), h(Whale), stars),
+          h('div', { className: 'cosmos-planet' }), h('div', { className: 'cosmos-meteor' }),
+          h('div', { className: 'cosmos-meteor cosmos-meteor--2' }), h('div', { className: 'cosmos-meteor cosmos-meteor--3' }), h(Whale), stars),
         h('div', { className: 'cosmos-controls', onKeyDown: (event) => { if (open && event.key === 'Escape') { event.stopPropagation(); close(); } } },
           h('button', { ref: launcher, type: 'button', className: 'cosmos-launcher', 'aria-label': '深空主题设置', 'aria-expanded': open, 'aria-controls': 'cosmos-settings', onClick: () => setOpen(!open), title: '深空主题设置' }, '✦'),
           open && h('section', { id: 'cosmos-settings', className: 'cosmos-panel', 'aria-label': '深空主题设置' },
@@ -150,7 +165,7 @@ window.__ModuleLoader__.load({
           const style = document.createElement('style');
           style.id = 'dsh-cosmos-theme-style'; style.textContent = css;
           document.head.append(style);
-          document.documentElement.setAttribute('data-cosmos-applied', '0.2.0');
+          document.documentElement.setAttribute('data-cosmos-applied', '0.3.5');
           return () => { style.remove(); document.documentElement.removeAttribute('data-cosmos-applied'); };
         });
         ctx.slots.inject('shell.overlay', () => ctx.slots.register({ name: 'shell.overlay', id: 'cosmos.starfield', order: -100 }, Experience));

@@ -1,0 +1,25 @@
+{
+  "name": "dsh-volc-services",
+  "version": "0.1.0",
+  "private": true,
+  "description": "火山引擎豆包语音接入 DSH 语音输入，并复用本机 MediaKit 入口提供媒体处理工具。",
+  "type": "module",
+  "exports": {
+    ".": "./lib/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "docs",
+    "cordis.patch.yml",
+    "README.md",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

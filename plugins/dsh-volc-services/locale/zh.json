@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "火山豆包语音与 MediaKit",
+    "description": "把火山引擎豆包语音接入 DSH 语音输入，并把本机 MediaKit 入口接成智能体工具。凭据仍读本机现有入口，录音只发官方识别接口。",
+    "detail": "docs/DETAIL.md"
+  }
+}

@@ -1,15 +1,40 @@
 {
   "name": "dsh-simple-skills",
-  "version": "0.1.1",
-  "description": "在左侧边栏浏览系统技能并管理个人技能。",
+  "version": "0.5.1",
+  "description": "在左侧边栏浏览系统技能、只读查看项目技能并管理个人技能。",
   "type": "module",
-  "engines": { "node": ">=22.19.0", "dsh": ">=0.2.2-rc.1 <0.3.0-0" },
-  "exports": { ".": "./lib/index.js", "./client": "./lib/client.js", "./locale/*.json": "./locale/*.json" },
-  "files": ["lib", "locale", "cordis.patch.yml", "README.md"],
-  "dependencies": { "yaml": "2.8.1" },
-  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": {
+    "node": ">=22.19.0",
+    "dsh": ">=0.2.2-rc.1 <0.3.0-0"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dependencies": {
+    "yaml": "2.8.1"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
-    "client": { "platform": "web", "immediately": true, "inject": ["@deepseek-ai/dsh-client-ui-layout", "@deepseek-ai/dsh-client-ui-sidebar"] }
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
   }
 }

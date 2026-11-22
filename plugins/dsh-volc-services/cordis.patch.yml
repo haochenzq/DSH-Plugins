@@ -1,0 +1,7 @@
+- insert:
+    - id: speech-to-text-doubao
+      name: dsh-volc-services
+      config:
+        providerId: doubao-cloud
+        envName: VOLC_ASR_API_KEY
+        timeoutMs: 60000

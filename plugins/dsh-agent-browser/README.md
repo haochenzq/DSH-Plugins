@@ -1,6 +1,6 @@
 # 专用自动化浏览器
 
-本配置使用 Playwright MCP 和独立的 Chromium 用户数据目录，向 DSH 注册 **agent_browser**。适用于 DSH Desktop 0.2.2-rc.1，可配合[浏览器授权衔接](../dsh-browser-handoff/README.md)使用。
+本配置使用 Playwright MCP 和独立的 Chromium 用户数据目录，向 DSH 注册 **agent_browser**。适用于 DSH Desktop 0.2.2-rc.1 至 0.2.x，可配合[浏览器授权衔接](../dsh-browser-handoff/README.md)使用。
 
 [配置文件](bundle/cordis.patch.yml)保留了现行启动参数和独立 Chromium 的配置，路径使用通用 Windows 示例。安装时按文件中的「可替换」标记填写本机实际路径。
 

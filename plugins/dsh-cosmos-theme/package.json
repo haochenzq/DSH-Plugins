@@ -1,6 +1,6 @@
 {
   "name": "dsh-cosmos-theme",
-  "version": "0.2.0",
+  "version": "0.3.5",
   "description": "深空探索 · Cosmos：可切换场景与动效的本地宇宙主题。",
   "type": "module",
   "engines": {"dsh": ">=0.2.2-rc.1 <0.3.0"},

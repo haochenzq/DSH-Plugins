@@ -25,6 +25,19 @@ function observeRateLimit(queue, message, wait) {
   }
 }
 
+/**
+ * Report provider usage to the optional dsh-openai-usage plugin.
+ * Usage reporting must never change or fail an OpenAI request.
+ */
+function recordOpenAiUsage(ctx, model, usage) {
+  if (usage === undefined || usage === null) return
+  try {
+    ctx.get('openAiUsage')?.record?.(model, usage)
+  } catch {
+    // Ignore: accounting is best effort.
+  }
+}
+
 function estimateRequest(ctx, request) {
   const meter = ctx.get('tokenMeter')
   const session = request.purpose === undefined && request.sessionId !== undefined
@@ -80,6 +93,8 @@ export function apply(ctx) {
   const lifetime = new AbortController()
   const sharedQueue = new RequestQueue(1_000_000)
   const queues = new Map([
+    ['gpt-6.2-astra', sharedQueue],
+    ['gpt-6.2-sol', sharedQueue],
     ['gpt-6-astra', sharedQueue],
     ['gpt-6.1-sol', sharedQueue],
     ['gpt-6.1-terra', sharedQueue],
@@ -137,6 +152,7 @@ export function apply(ctx) {
       }
       const result = await requestOpenAI(ctx, 'responses',
         { model, input, max_output_tokens: outputLimit, store: false }, exec.signal, 75_000, queues.get(model), lifetime.signal)
+      recordOpenAiUsage(ctx, model, result.usage)
       const messages = Array.isArray(result.output) ? result.output : []
       const text = messages.filter(item => item.type === 'message').flatMap(item => item.content)
         .filter(part => part?.type === 'output_text').map(part => part.text).join('\n')
@@ -183,6 +199,7 @@ export function apply(ctx) {
       const result = await requestOpenAI(ctx, 'images/generations', {
         model: imageModel, prompt: prompt.trim(), n: 1, size: '1024x1024', quality: 'low', output_format: 'png',
       }, exec.signal, 120_000)
+      recordOpenAiUsage(ctx, imageModel, result.usage)
       const encoded = result.data?.[0]?.b64_json
       if (typeof encoded !== 'string' || !encoded || encoded.length > 16 * 1024 * 1024) {
         throw new Error('OpenAI did not return an image within the attachment limit.')

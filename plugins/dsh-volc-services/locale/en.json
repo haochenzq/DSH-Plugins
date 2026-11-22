@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Volcengine Doubao voice & MediaKit",
+    "description": "Adds the Volcengine Doubao cloud recognizer to DSH voice input and connects the local MediaKit entry as agent tools. Credentials stay in the existing local entry; recordings are sent only to the official ASR endpoint.",
+    "detail": "docs/DETAIL.md"
+  }
+}

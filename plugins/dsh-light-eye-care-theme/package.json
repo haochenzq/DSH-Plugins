@@ -1,0 +1,24 @@
+{
+  "name": "dsh-light-eye-care-theme",
+  "version": "0.3.0",
+  "private": true,
+  "description": "为真实 DeepSeek Harness 界面提供温和浅色主题，不改变布局和功能。",
+  "type": "module",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": ["lib", "locale", "icon.svg", "cordis.patch.yml", "README.md"],
+  "engines": { "dsh": ">=0.2.2-rc.3 <0.3.0" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-theme"]
+    }
+  },
+  "license": "MIT"
+}

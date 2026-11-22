@@ -146,7 +146,7 @@
      处方要点：底图本身极暗，遮罩只能"轻压"，否则鲸身粒子会彻底消失；
      文字可读性靠面板玻璃（--ds-glass-strong），不靠把整张图涂黑。
      ---------------------------------------------------------------------- */
-  --ds-bg-image: url("assets/deepseek-abyss.png");
+  --ds-bg-image: url("../../plugins/dsh-abyss-theme/assets/deepseek-abyss.png");
   /* 径向压暗：只压四角，中心与鲸身区域保留粒子 */
   --ds-bg-mask: radial-gradient(125% 95% at 12% 0%,
                    rgba(4, 6, 12, 0.00) 0%,
@@ -315,4 +315,36 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* 独立浅色护眼色板；插件中的 PALETTE 必须与此一致，不改变深色主题。 */
+:root {
+  --ds-light-base: #F5F6F2;
+  --ds-light-sidebar: #EFF1EB;
+  --ds-light-surface: #FAFBF8;
+  --ds-light-secondary-surface: #F0F3ED;
+  --ds-light-selection: #DBE9DF;
+  --ds-light-selection-strong: #CFDFD5;
+  --ds-light-text: #343A36;
+  --ds-light-text-secondary: #505C54;
+  --ds-light-text-tertiary: #566159;
+  --ds-light-text-disabled: #858D84;
+  --ds-light-accent: #83A995;
+  --ds-light-accent-ink: #203C2D;
+  --ds-light-accent-hover: #346349;
+  --ds-light-blue: #668FC7;
+  --ds-light-blue-ink: #315F9B;
+  --ds-light-blue-soft: #E3ECF7;
+  --ds-light-border: #E4E8E0;
+  --ds-light-border-strong: #7E8C7F;
+  --ds-light-success: #3D7355;
+  --ds-light-success-soft: #E2F0E5;
+  --ds-light-warn: #805712;
+  --ds-light-warn-soft: #F6ECD9;
+  --ds-light-error: #9B4949;
+  --ds-light-error-soft: #F7E7E5;
+  --ds-light-inverse-surface: #343A36;
+  --ds-light-inverse-text: #FAFBF8;
+  --ds-light-scrollbar: #C4CFC2;
+  --ds-light-scrollbar-hover: #A9B7AA;
 }

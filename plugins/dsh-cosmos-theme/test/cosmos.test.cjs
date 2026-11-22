@@ -40,7 +40,7 @@ function byClass(tree, name) { return find(tree, (n) => (n.props.className || ''
 
 test('manifest, canonical palette, and no external resources', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json')));
-  assert.equal(pkg.version, '0.2.0');
+  assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
   assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml');
   assert.equal(pkg.exports['./client'], './lib/client.js');
   const env = harness();
@@ -63,10 +63,11 @@ test('manifest, canonical palette, and no external resources', () => {
 
 test('defaults, controls, persistence, visibility and lifecycle', () => {
   const env = harness(); let tree = env.render();
-  assert.equal(env.attrs['data-cosmos-applied'], '0.2.0');
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json')));
+  assert.equal(env.attrs['data-cosmos-applied'], pkg.version, 'client diagnostic version must match the package');
   assert.equal(env.slot.info.id, 'cosmos.starfield');
   assert.equal(byClass(tree, 'cosmos-star').length, 145);
-  assert.equal(byClass(tree, 'cosmos-meteor').length, 1);
+  assert.equal(byClass(tree, 'cosmos-meteor').length, 3);
   let sky = byClass(tree, 'cosmos-sky')[0];
   assert.equal(sky.props['data-scene'], 'nebula'); assert.equal(sky.props['data-motion'], 'quiet');
   byClass(tree, 'cosmos-launcher')[0].props.onClick(); tree = env.render();
@@ -94,9 +95,21 @@ test('settings validation, reduced motion, non-blocking layers and meteor policy
   const css = env.styles[0].textContent;
   assert.match(css, /\.cosmos-sky\{[^}]*pointer-events:none!important/);
   assert.match(css, /\.cosmos-controls\{[^}]*pointer-events:none/);
+  assert.match(css, /\.cosmos-controls\{[^}]*left:12px;bottom:138px/);
+  assert.match(css, /\.cosmos-launcher\{[^}]*width:30px;height:30px/);
+  assert.match(css, /\.cosmos-panel\{[^}]*margin-bottom:5px/);
+  assert.match(css, /@media\(max-width:600px\)\{.*\.cosmos-controls\{top:64px;bottom:auto/);
   assert.match(css, /\.cosmos-controls button,\.cosmos-controls select\{[^}]*pointer-events:auto/);
   assert.match(css, /data-motion=rich\]\) \.cosmos-meteor/);
+  assert.match(css, /\[data-motion=rich\] \.cosmos-star\{animation-name:cosmos-twinkle-rich;animation-duration:calc\(var\(--period\) \* \.45\)/);
+  assert.match(css, /\[data-motion=rich\] \.cosmos-meteor\{animation-name:cosmos-meteor-rich/);
+  assert.match(css, /@keyframes cosmos-twinkle-rich\{from\{opacity:\.04/);
+  assert.match(css, /\.cosmos-meteor--3\{right:5%;top:33%/);
   assert.match(css, /data-scene=focus\] \.cosmos-meteor\{display:none/);
+  const focus = '.cosmos-sky[data-scene=focus] .cosmos-cloud{opacity:.08}.cosmos-sky[data-scene=focus] .cosmos-star{opacity:.12;animation:none}';
+  assert.ok(css.includes(focus), 'focus keeps clouds subdued and stars still');
+  assert.ok(css.indexOf(focus) > css.indexOf('.cosmos-sky[data-motion=rich] .cosmos-star{'), 'focus must override rich star animation');
+  assert.ok(css.indexOf(focus) > css.indexOf('.cosmos-sky[data-motion=rich] .cosmos-cloud{'), 'focus must override rich cloud opacity');
   assert.match(css, /prefers-reduced-motion:reduce[^}]*animation:none!important\}\.cosmos-meteor\{display:none!important/);
   assert.match(css, /data-hidden=true\] \*\{animation-play-state:paused!important/);
 });

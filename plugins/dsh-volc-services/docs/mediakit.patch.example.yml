@@ -1,0 +1,13 @@
+- insert:
+    - id: volc-mediakit-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: volcmediakit
+        transport: stdio
+        command: 'C:\MediaKit\.venv\Scripts\python.exe'
+        args:
+          - 'C:\MediaKit\run_api.py'
+          - mediakit_server
+        toolCallTimeoutMs: 300000
+        startupTimeoutMs: 30000
+        failOnStartupError: true
