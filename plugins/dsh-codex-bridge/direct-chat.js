@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync 
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { bridgeError, dshSessionId, requestPrefix, requestUuid } from './protocol.js'
-import { withCodexService } from './codex-service.js'
-import { sendThroughDesktop } from './codex-desktop.js'
+import { connectCodexService, withCodexService } from './codex-service.js'
+import { sendThroughDesktop, subagentTargetError } from './codex-desktop.js'
 
 const originLifetime = 30 * 60 * 1000
 
@@ -12,6 +12,10 @@ function threadId(value) {
   if (typeof value !== 'string') return null
   const id = value.trim().replace(/^codex:\/\/threads\//i, '')
   return requestUuid.test(id) ? id.toLowerCase() : null
+}
+
+function isAutomaticTarget(target) {
+  return target === undefined || (typeof target === 'string' && !target.trim())
 }
 
 function currentTurn(session) {
@@ -30,10 +34,30 @@ function currentTurn(session) {
   }
 }
 
-export async function sendCodexMessage(target, message, attachment, connect = withCodexService, desktop = sendThroughDesktop) {
+function codexCli() {
   const home = process.env.CODEX_HOME || join(homedir(), '.codex')
   const managed = join(home, 'packages', 'app-server-daemon', 'current', 'bin', 'codex.exe')
-  const cli = existsSync(managed) ? managed : 'codex.exe'
+  return existsSync(managed) ? managed : 'codex.exe'
+}
+
+export async function resolveMainCodexThread(target, connect = connectCodexService) {
+  return connect(codexCli(), async rpc => {
+    const seen = new Set()
+    let current = target
+    while (!seen.has(current)) {
+      seen.add(current)
+      const { thread } = await rpc('thread/read', { threadId: current, includeTurns: false })
+      if (thread?.id !== current || !thread.source) return target
+      if (!thread.source.subAgent) return current
+      const parent = threadId(thread.source.subAgent.thread_spawn?.parent_thread_id)
+      if (!parent) return target
+      current = parent
+    }
+    return target
+  }, 3_000).catch(() => target)
+}
+
+export async function sendCodexMessage(target, message, attachment, connect = withCodexService, desktop = sendThroughDesktop) {
   const body = '【DSH】' + message.replace(/^【DSH】\s*/, '')
   if (attachment && attachment.kind !== 'file' && attachment.kind !== 'image') {
     throw bridgeError('invalid-attachment', 'The verified attachment has an unsupported delivery type.')
@@ -48,28 +72,25 @@ export async function sendCodexMessage(target, message, attachment, connect = wi
   }
   const messageId = randomUUID()
   const request = { threadId: target, clientUserMessageId: messageId, input }
-  let result = await desktop(request)
+  let result
+  try {
+    result = await desktop(request)
+  } catch (error) {
+    if (error.code !== 'codex-desktop-unavailable') throw error
+    result = null
+  }
   if (result === null) {
-    try {
-      result = await connect(cli, async rpc => {
-        const { thread } = await rpc('thread/read', { threadId: target, includeTurns: false })
-        if (thread.status.type === 'notLoaded') {
-          try {
-            await rpc('thread/resume', { threadId: target, excludeTurns: true })
-          } catch (error) {
-            if (error.code !== 'codex-request-rejected' || !/already has an active writer/i.test(error.message)) throw error
-            throw bridgeError('codex-active-writer', error.message)
-          }
-        }
-        return rpc('turn/start', request)
-      })
-    } catch (error) {
-      if (error.code !== 'codex-active-writer') throw error
-      // Desktop may have acquired the session after the initial owner lookup.
-      result = await desktop(request)
-      if (result === null) throw bridgeError('codex-owner-unavailable',
-        'Another Codex process owns this conversation and its desktop route is unavailable. The message was not sent.')
+    const queued = await connect(codexCli(), async rpc => {
+      const { thread } = await rpc('thread/read', { threadId: target, includeTurns: false })
+      if (thread.source?.subAgent) throw subagentTargetError()
+      return rpc('thread/queue/add', request)
+    })
+    const submission = queued?.queuedSubmission
+    if (!submission?.id || submission.clientUserMessageId !== messageId) {
+      throw bridgeError('codex-delivery-unknown', 'Codex did not confirm this queue entry. Check the target before retrying.')
     }
+    return { status: 'queued', messageId, queueId: submission.id,
+      ...(attachment ? { attachment: attachment.kind === 'image' ? 'image' : 'file-reference' } : {}) }
   }
   const { turn } = result
   if (!turn?.id) throw bridgeError('codex-delivery-unknown', 'Codex did not return a turn receipt. Check the target before retrying.')
@@ -77,7 +98,8 @@ export async function sendCodexMessage(target, message, attachment, connect = wi
     ...(attachment ? { attachment: attachment.kind === 'image' ? 'image' : 'file-reference' } : {}) }
 }
 
-export function createDirectChat(ctx, directory, send = sendCodexMessage, findAttachment) {
+export function createDirectChat(ctx, directory, send, findAttachment,
+  resolveMain = resolveMainCodexThread) {
   const origins = new Map()
   const sent = new Map()
   const routeDirectory = join(directory, 'codex-routes')
@@ -120,13 +142,14 @@ export function createDirectChat(ctx, directory, send = sendCodexMessage, findAt
     }
   }
 
-  function chooseTarget(target, choices, sessionId) {
-    const automatic = target === undefined || (typeof target === 'string' && !target.trim())
+  async function chooseTarget(target, choices, sessionId) {
+    const automatic = isAutomaticTarget(target)
     const requested = automatic ? undefined : threadId(target)
     if (automatic && choices.size === 1) return choices.values().next().value
     if (choices.has(requested)) return requested
     if (!automatic || choices.size === 0) {
-      const routes = loadRoutes(sessionId)
+      const saved = loadRoutes(sessionId)
+      const routes = automatic ? new Set(await Promise.all([...saved].map(id => resolveMain(id)))) : saved
       if (routes.has(requested)) return requested
       if (automatic && routes.size === 1) return routes.values().next().value
       if (automatic && routes.size > 1) {
@@ -164,7 +187,38 @@ export function createDirectChat(ctx, directory, send = sendCodexMessage, findAt
     },
   })
 
-  async function deliver({ target, message, attachmentId, sourceSeq }, exec) {
+  ctx.tools.register({
+    name: 'send_text_to_codex',
+    description: 'Proactively send plain text to one authorized Codex chat by its exact UUID or link. With multiple paired chats, select the intended target on each call.',
+    parameters: {
+      type: 'object', additionalProperties: false, required: ['target', 'message'],
+      properties: {
+        target: { type: 'string', minLength: 1 },
+        message: { type: 'string', minLength: 1, maxLength: 4000 },
+      },
+    },
+    output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
+    execute({ target, message }, exec) {
+      if (!threadId(target)) throw bridgeError('invalid-reply-target', 'Choose a Codex chat link or UUID.')
+      return deliver({ target, message }, exec)
+    },
+  })
+
+  ctx.tools.register({
+    name: 'send_to_active_codex',
+    description: 'Deliver text exclusively to the current running turn in one paired Codex chat. Specify its exact UUID or link. The receiving turn handles the text at its next tool or completion boundary. If unavailable, report the failure without queueing or resending.',
+    parameters: {
+      type: 'object', additionalProperties: false, required: ['target', 'message'],
+      properties: { target: { type: 'string', minLength: 1 }, message: { type: 'string', minLength: 1, maxLength: 4000 } },
+    },
+    output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
+    execute({ target, message }, exec) {
+      if (!threadId(target)) throw bridgeError('invalid-reply-target', 'Choose a Codex chat link or UUID.')
+      return deliver({ target, message, activeOnly: true }, exec)
+    },
+  })
+
+  async function deliver({ target, message, attachmentId, sourceSeq, activeOnly = false }, exec) {
     const session = exec.agent?.session
     if (!dshSessionId.test(session?.id) || typeof message !== 'string' || !message.trim() || message.length > 4000) {
       throw bridgeError('invalid-codex-message', 'A message requires 1–4,000 characters in a DSH conversation.')
@@ -196,9 +250,11 @@ export function createDirectChat(ctx, directory, send = sendCodexMessage, findAt
         choices.add(selected)
       }
     }
-    const requested = chooseTarget(target, choices, session.id)
+    const requested = await chooseTarget(target, choices, session.id)
+    if ((!isAutomaticTarget(target) || humanChoices.has(requested)) &&
+      await resolveMain(requested) !== requested) throw subagentTargetError()
     const body = message.trim()
-    const key = JSON.stringify([session.id, turn.seq, requested, body, attachmentId, sourceSeq])
+    const key = JSON.stringify([session.id, turn.seq, requested, body, attachmentId, sourceSeq, activeOnly])
     const now = Date.now()
     for (const [oldKey, entry] of sent) {
       if (entry.expiresAt <= now) sent.delete(oldKey)
@@ -208,8 +264,8 @@ export function createDirectChat(ctx, directory, send = sendCodexMessage, findAt
       delivery = { result: (async () => {
         const attachment = attachmentId === undefined ? undefined
           : await findAttachment(session, attachmentId, sourceSeq, exec.signal)
-        const receipt = await send(requested, body, attachment)
-        if (receipt?.status === 'sent' && humanChoices.has(requested)) rememberAcceptedRoute(session.id, requested)
+        const receipt = await send(requested, body, attachment, activeOnly)
+        if (['sent', 'queued', 'hook-delivered'].includes(receipt?.status) && humanChoices.has(requested)) rememberAcceptedRoute(session.id, requested)
         return receipt
       })(), expiresAt: now + originLifetime }
       sent.set(key, delivery)
@@ -219,9 +275,12 @@ export function createDirectChat(ctx, directory, send = sendCodexMessage, findAt
 
   async function submit(request, dispatch) {
     const source = threadId(request.codexThreadId)
-    const target = threadId(request.replyTo ?? source)
+    const target = request.replyTo === undefined && source ? await resolveMain(source) : threadId(request.replyTo)
     if (request.replyTo !== undefined && !target) {
       throw bridgeError('invalid-reply-target', 'Choose an existing Codex chat link or ID.')
+    }
+    if (request.replyTo !== undefined && await resolveMain(target) !== target) {
+      throw subagentTargetError()
     }
     if (target && typeof request.requestId === 'string' && requestUuid.test(request.requestId)) {
       const now = Date.now()
@@ -236,8 +295,9 @@ export function createDirectChat(ctx, directory, send = sendCodexMessage, findAt
       if (!current) origins.set(key, { target, sessionId: request.sessionId, expiresAt: now + originLifetime })
     }
     const result = await dispatch(request)
-    if (result?.accepted === true && source && source === target && dshSessionId.test(request.sessionId)) {
-      rememberAcceptedRoute(request.sessionId, source)
+    if (result?.accepted === true && target && (request.replyTo === undefined || source === target) &&
+      dshSessionId.test(request.sessionId)) {
+      rememberAcceptedRoute(request.sessionId, target)
     }
     return result
   }
