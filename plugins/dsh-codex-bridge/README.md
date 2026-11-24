@@ -24,7 +24,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Codex 钩子配置失败。' }
 ~~~
 
 1. 从 Codex-skills 仓库把完整的 `codex-to-dsh` 目录复制到 Codex 用户技能目录，默认是 `~/.codex/skills`。若设置了 `CODEX_HOME`，目标是其下的 `skills` 目录。[配套 Codex 技能](https://github.com/haochenzq/Codex-skills/tree/main/codex-to-dsh)
-2. 在 Codex 的 `/hooks` 中审阅并信任本次安装目录的 `turn-channel.js`。安装器将 `UserPromptSubmit`、`PreToolUse`、`PostToolUse`、`Stop`、`Interrupt` 五项命令合并到用户级配置，修改已有配置时会保留备份。从旧版升级时，检查并停用仍指向旧版安装目录的桥接钩子。
+2. 在 Codex 的 `/hooks` 中审阅本次安装目录的 `turn-channel.js`，按提示信任。安装器在用户级配置合并五个事件，其中 `Interrupt` 最多 3 秒。升级时只迁移同一安装根目录中 0.6.8–0.6.11 的标准桥接钩子，去掉重复的标准项，保留其他钩子和既有配置备份。不迁移自定义或其他路径的旧钩子，如有，请在 `/hooks` 单独检查。安装器不修改信任设置。
 3. 等 DSH 当前工作结束，正常退出后重新打开 DSH Desktop。打开普通 Codex 主聊天，粘贴目标 DSH 会话 ID。配对成功回执中的版本应为 `0.7.0`。
 
 ## 使用和验收

@@ -7,6 +7,36 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const events = ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'Interrupt']
 
+// Only releases that installed this stock hook layout can be migrated.
+const legacyVersions = new Set(['0.6.8', '0.6.9', '0.6.10', '0.6.11'])
+const packageScript = /^([a-z]:\/(?:.*\/)?dsh codex bridge\/packages)\/(\d+\.\d+\.\d+)\/turn-channel\.js$/
+const nodeScript = /^(?:"[^"]*[\\/]node(?:\.exe)?"|[^"\s]*[\\/]node(?:\.exe)?|node(?:\.exe)?)\s+"([^"]+)"$/i
+const hasOnlyKeys = (value, allowed) => Object.keys(value).every(key => allowed.includes(key))
+
+function findBridgeHooks(groups, event, path, command) {
+  const target = packageScript.exec(path)
+  const entries = []
+  for (const group of groups) {
+    if (!Array.isArray(group?.hooks)) throw new Error('Expected hook list for ' + event)
+    if (group.matcher != null && group.matcher !== '') continue
+    for (const hook of group.hooks) {
+      if (hook?.type !== 'command' || hook.async || hook.commandWindows || typeof hook.command !== 'string') continue
+      const script = nodeScript.exec(hook.command)?.[1].replaceAll('\\', '/').toLowerCase()
+      const stock = hasOnlyKeys(group, ['hooks', 'matcher']) && hasOnlyKeys(hook, ['type', 'command', 'timeout'])
+      if (hook.command === command || script === path) {
+        entries.push({ hook, current: true, stock })
+        continue
+      }
+      if (!stock || !script || target?.[2] !== '0.7.0') continue
+      const previous = packageScript.exec(script)
+      if (previous?.[1] === target[1] && legacyVersions.has(previous[2])) {
+        entries.push({ hook, current: false, stock: true })
+      }
+    }
+  }
+  return entries
+}
+
 function installedNodePath() {
   const executable = realpathSync.native(process.execPath)
   if (process.platform !== 'win32' || !executable.includes(' ')) return executable
@@ -40,18 +70,31 @@ export function configureHooks(file, script, executable = installedNodePath()) {
     if (root.hooks[event] === undefined) root.hooks[event] = []
     const groups = root.hooks[event]
     if (!Array.isArray(groups)) throw new Error('Expected hook groups for ' + event)
-    const existing = groups.some(group => !group.matcher && group.hooks.some(hook => {
-      if (hook.type !== 'command' || hook.async || hook.commandWindows) return false
-      const match = /^(?:"[^"]*[\\/]node\.exe"|\S*[\\/]node\.exe|node(?:\.exe)?)\s+"([^"]+)"$/i.exec(hook.command)
-      if (!match || match[1].replaceAll('\\', '/').toLowerCase() !== path.toLowerCase()) return false
-      if (hook.command !== command) {
-        hook.command = command
-        changed = true
+    const entries = findBridgeHooks(groups, event, path.toLowerCase(), command)
+    const keep = entries.find(entry => entry.current && !entry.stock) ?? entries.find(entry => entry.current) ?? entries[0]
+    const timeout = event === 'Interrupt' ? 3 : 6
+    if (!keep) {
+      groups.push({ hooks: [{ type: 'command', command, timeout }] })
+      changed = true
+      continue
+    }
+    if (keep.hook.command !== command) {
+      keep.hook.command = command
+      changed = true
+    }
+    if (event === 'Interrupt' && (keep.hook.timeout === undefined || keep.hook.timeout > timeout)) {
+      keep.hook.timeout = timeout
+      changed = true
+    }
+    const duplicates = new Set(entries.filter(entry => entry !== keep && entry.stock).map(entry => entry.hook))
+    if (duplicates.size) {
+      for (let index = groups.length - 1; index >= 0; index--) {
+        const group = groups[index]
+        const remaining = group.hooks.filter(hook => !duplicates.has(hook))
+        if (remaining.length === group.hooks.length) continue
+        if (remaining.length) group.hooks = remaining
+        else groups.splice(index, 1)
       }
-      return true
-    }))
-    if (!existing) {
-      groups.push({ hooks: [{ type: 'command', command, timeout: 6 }] })
       changed = true
     }
   }

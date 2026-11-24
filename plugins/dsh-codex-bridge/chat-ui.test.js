@@ -114,8 +114,8 @@ test('current record: reply_to_codex keeps the verbatim text and the live-receiv
   const rendered = renderer({ node })
   assert.equal(rendered[2][2], 'DSH → Codex')
   assert.equal(rendered[3][2], 'Codex 已接收')
-  assert.equal(rendered[4][2], message)
-  assert.equal(rendered[5], null)
+  assert.equal(rendered[5][2], message)
+  assert.equal(rendered[6], null)
   assert.equal(JSON.stringify(rendered).includes('附件'), false)
 
   // Inbound Codex text stays an ordinary DSH user message; other tools are no longer ours.
@@ -147,7 +147,7 @@ test('consecutive messages render one row each, including nested dispatches', ()
   assert.deepEqual(nodes.map(node => node.data.status), ['Codex 已接收', 'Codex 已接收', 'Codex 已接收'])
   assert.deepEqual(nodes.map(node => node.anchorSeq), [40, 60, 80])
   assert.equal(new Set(nodes.map(node => node.id)).size, 3)
-  for (const node of nodes) assert.equal(renderer({ node })[4][2], node.data.message)
+  for (const node of nodes) assert.equal(renderer({ node })[5][2], node.data.message)
 })
 
 test('failed sends keep the verbatim text and the real reason, and never claim success', () => {
@@ -162,8 +162,8 @@ test('failed sends keep the verbatim text and the real reason, and never claim s
   assert.equal(failed[0].data.status, '发送失败')
   assert.equal(failed[0].data.reason, 'thread 00000000-0000-4000-8000-000000000022 already has an active writer')
   const rendered = renderer({ node: failed[0] })
-  assert.equal(rendered[4][2], failedText)
-  assert.equal(rendered[5][2], '原因：thread 00000000-0000-4000-8000-000000000022 already has an active writer')
+  assert.equal(rendered[5][2], failedText)
+  assert.equal(rendered[6][2], '原因：thread 00000000-0000-4000-8000-000000000022 already has an active writer')
 
   const nestedFailure = replay(definition, [
     ptcDispatch(90, 'c7', '嵌套失败正文', 'Error: 目标 Codex 会话不可用', { isError: true }),
@@ -197,4 +197,29 @@ test('refresh replays the whole window without duplicates, loss or old rows', ()
   assert.equal(first[0].data.message, '刷新后仍在\n    缩进')
   assert.equal(first[1].data.reason, '未配对')
   assert.deepEqual(replay(definition, events), first)
+})
+
+test('inline notice distinguishes undelivered and uncertain; never duplicates on replay', () => {
+  const { definition, renderer } = loadChatUI()
+  const noLink = toolResult(11, 'no', 'Error: 当前通话未连接，请在目标 Codex 主聊天重新配对。', { isError: true })
+  const unknown = toolResult(21, 'unknown', 'Error: The receiver claimed this message but did not confirm writing the output.', { isError: true })
+  const events = [
+    toolCall(10, 'no', '重连测试'), noLink, noLink,
+    toolCall(20, 'unknown', '回执测试'), unknown,
+    toolCall(30, 'ok', '成功测试'), liveReceipt(31, 'ok'),
+    toolCall(40, 'pending', '等待测试'),
+    toolCall(50, 'empty', '空回执测试'), toolResult(51, 'empty', ''),
+  ]
+  const nodes = replay(definition, events)
+  assert.deepEqual(nodes.map(n => n.data.status), ['发送失败', '回执未确认', 'Codex 已接收', '等待回执', '回执未确认'])
+  assert.match(nodes[0].data.notice, /重新接通后，再手动发送/)
+  assert.match(nodes[1].data.notice, /先核对原会话，不要重发/)
+  assert.equal(nodes[2].data.notice, undefined)
+  assert.equal(nodes[3].data.notice, undefined)
+  assert.match(nodes[4].data.notice, /不要重发/)
+  assert.equal(JSON.stringify(renderer({ node: nodes[0] })).split(nodes[0].data.notice).length, 2)
+  assert.deepEqual(replay(definition, events), nodes)
+  const recovered = replay(definition, [toolCall(20, 'unknown', '回执测试'), unknown, liveReceipt(22, 'unknown')])[0]
+  assert.equal(recovered.data.notice, undefined)
+  assert.equal(recovered.data.reason, undefined)
 })
